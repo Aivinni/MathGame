@@ -36,7 +36,9 @@ public class MathGameUI {
             game.playRound(); // play one round of game
             System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
             System.out.println("GAME OVER!");
-            if (game.getWinner() != null) {  // check for null just to be safe (so we don't call a method on null)
+            if (game.getWinner() == null) {
+                System.out.println(("The game was a tie!"));
+            } else if (game.getWinner() != null) {  // check for null just to be safe (so we don't call a method on null)
                 System.out.println("The winner was " + game.getWinner().getName());   // print winner's name
                 System.out.println("with a score of " + game.getWinner().getScore()); // print winner's score
             }

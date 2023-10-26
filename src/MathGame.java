@@ -1,18 +1,22 @@
 import java.util.Scanner;
 
 public class MathGame {
-
     private Player player1;
     private Player player2;
+    private Player player3;
     private Player currentPlayer;
     private Player winner;
+    private Player prevWinner;
+    private int streak;
     private boolean gameOver;
     private Scanner scanner;
+    private boolean veryUnlucky;
 
     // create MathGame object
-    public MathGame(Player player1, Player player2, Scanner scanner) {
+    public MathGame(Player player1, Player player2, Player player3, Scanner scanner) {
         this.player1 = player1;
         this.player2 = player2;
+        this.player3 = player3;
         this.scanner = scanner;
         currentPlayer = null; // will get assigned at start of game
         winner = null; // will get assigned when a Player wins
@@ -28,6 +32,7 @@ public class MathGame {
 
     // plays a round of the math game
     public void playRound() {
+        int fails = 0;
         chooseStartingPlayer();  // this helper method (shown below) sets currentPlayer to either player1 or player2
         while (!gameOver) {
             printGameState();   // this helper method (shown below) prints the state of the Game
@@ -35,12 +40,17 @@ public class MathGame {
             boolean correct = askQuestion();  // this helper method (shown below) asks a question and returns T or F
             if (correct) {
                 System.out.println("Correct!");
+                fails = 0;
                 currentPlayer.incrementScore();  // this increments the currentPlayer's score
                 swapPlayers();  // this helper method (shown below) sets currentPlayer to the other Player
+            } else if (fails < 1){
+                fails++;
             } else {
                 System.out.println("INCORRECT!");
                 gameOver = true;
+                fails = 0;
                 determineWinner();
+                countStreak();
             }
         }
     }
@@ -51,6 +61,7 @@ public class MathGame {
         System.out.println("Current Scores:");
         System.out.println(player1.getName() + ": " + player1.getScore());
         System.out.println(player2.getName() + ": " + player2.getScore());
+        System.out.println(player3.getName() + ": " + player3.getScore());
         System.out.println("--------------------------------------");
     }
 
@@ -58,6 +69,7 @@ public class MathGame {
     public void resetGame() {
         player1.reset(); // this method resets the player
         player2.reset();
+        player3.reset();
         gameOver = false;
         currentPlayer = null;
         winner = null;
@@ -65,56 +77,73 @@ public class MathGame {
 
     // ------------ PRIVATE HELPER METHODS (internal use only) ------------
 
+    private double round(double num) {
+        return ((int) (num * 100)) / 100.0;
+    }
+
     // randomly chooses one of the Player objects to be the currentPlayer
     private void chooseStartingPlayer() {
-        int randNum = (int) (Math.random() * 2) + 1;
+        int randNum = (int) (Math.random() * 3) + 1;
         if (randNum == 1) {
             currentPlayer = player1;
-        } else {
+        } else if (randNum == 2) {
             currentPlayer = player2;
+        } else {
+            currentPlayer = player3;
         }
     }
 
     // asks a math question and returns true if the player answered correctly, false if not
     private boolean askQuestion() {
-        int operation = (int) (Math.random() * 4) + 1;
+        double operation = (Math.random() * 10);
+        veryUnlucky = false;
+        if (Math.random() == 0) {
+            operation = 10;
+            veryUnlucky = true;
+        }
         int num1 = (int) (Math.random() * 100) + 1;
         int num2;
-        int correctAnswer;
-        System.out.println("Type in your answer as an integer (/ is int division)");
-        if (operation == 1) {
-            num2 = (int) (Math.random() * 100) + 1;
+        double correctAnswer;
+        System.out.println("Type in your answer as an number (/ is double division, truncated after hundreds place)");
+        if (operation <= 4) {
+            num2 = (int) (Math.random() * 283) + 1;
             System.out.print(num1 + " + " + num2 + " = ");
             correctAnswer = num1 + num2;
-        } else if (operation == 2) {
-            num2 = (int) (Math.random() * 100) + 1;
+        } else if (operation <= 8) {
+            num2 = (int) (Math.random() * 391) + 1;
             System.out.print(num1 + " - " + num2 + " = ");
             correctAnswer = num1 - num2;
-        } else if (operation == 3) {
-            num2 = (int) (Math.random() * 10) + 1;
+        } else if (operation <= 9) {
+            System.out.println("Unlucky You!");
+            num2 = (int) (Math.random() * 19) + 2;
             System.out.print(num1 + " * " + num2 + " = ");
             correctAnswer = num1 * num2;
-        } else {  // option == 4
-            num2 = (int) (Math.random() * 10) + 1;
+        } else if (operation < 10) {
+            System.out.println("Unlucky You!");
+            num2 = (int) (Math.random() * 53) + 21;
             System.out.print(num1 + " / " + num2 + " = ");
-            correctAnswer = num1 / num2;
+            correctAnswer = round((double) num1 / (double) num2);
+        } else {
+            System.out.println("You got VERY unlucky!");
+            num2 = (int) (Math.random() * 10) + 1;
+            System.out.print(num1 + "^" + num2 + " = ");
+            correctAnswer = Math.pow(num1, num2);
         }
 
-        int playerAnswer = scanner.nextInt(); // get player's answer using Scanner
+        double playerAnswer = scanner.nextDouble(); // get player's answer using Scanner
         scanner.nextLine(); // clear text buffer after numeric scanner input
 
-        if (playerAnswer == correctAnswer) {
-            return true;
-        } else {
-            return false;
-        }
+
+        return playerAnswer == correctAnswer;
     }
 
     // swaps the currentPlayer to the other player
     private void swapPlayers() {
         if (currentPlayer == player1) {
             currentPlayer = player2;
-        } else {
+        } else if (currentPlayer == player2) {
+            currentPlayer = player3;
+        } else if (currentPlayer == player3) {
             currentPlayer = player1;
         }
     }
@@ -122,9 +151,51 @@ public class MathGame {
     // sets the winner when the game ends based on the player that missed the question
     private void determineWinner() {
         if (currentPlayer == player1) {
-            winner = player2;
+            if (player2.getScore() == player3.getScore()) {
+                winner = null;
+            } else if (player2.getScore() > player3.getScore()) {
+                winner = player2;
+            } else if (player3.getScore() > player2.getScore()) {
+                winner = player3;
+
+            }
+        } else if (currentPlayer == player2) {
+            if (player1.getScore() == player3.getScore()) {
+                winner = null;
+
+            } else if (player1.getScore() > player3.getScore()) {
+                winner = player1;
+
+            } else if (player3.getScore() > player2.getScore()) {
+                winner = player3;
+
+            }
+        } else if (currentPlayer == player3) {
+            if (player1.getScore() == player2.getScore()) {
+                winner = null;
+            } else if (player1.getScore() > player2.getScore()) {
+                winner = player1;
+
+            } else if (player2.getScore() > player1.getScore()) {
+                winner = player2;
+
+            }
+        }
+        prevWinner = winner;
+    }
+
+    private void countStreak() {
+        if (winner != null) {
+            if (winner == (prevWinner)) {
+                streak++;
+                System.out.println("Current Streak: " + winner.getName() + " at " + streak + " wins");
+            } else if (winner != prevWinner) {
+                streak = 0;
+                System.out.println("Current Streak: " + winner.getName() + " at " + streak + " wins");
+            }
         } else {
-            winner = player1;
+            streak = 0;
+            System.out.println("No one won");
         }
     }
 }
